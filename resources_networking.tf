@@ -21,6 +21,14 @@ resource "aws_cloudfront_distribution" "this" {
     target_origin_id       = local.web_content_bucket_regional_domain_name
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+
+    dynamic "function_association" {
+      for_each = var.cloudfront_function_viewer_request_code != "" ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.viewer_request[0].arn
+      }
+    }
   }
 
   restrictions {
@@ -39,4 +47,12 @@ resource "aws_cloudfront_distribution" "this" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+}
+
+resource "aws_cloudfront_function" "viewer_request" {
+  count = var.cloudfront_function_viewer_request_code != "" ? 1 : 0
+
+  name    = var.bucket_name
+  runtime = "cloudfront-js-1.0"
+  code    = var.cloudfront_function_viewer_request_code
 }
