@@ -7,6 +7,7 @@ resource "aws_cloudfront_distribution" "this" {
   http_version        = "http2and3"
   is_ipv6_enabled     = true
   default_root_object = "index.html"
+  aliases             = var.subject_alternative_names
 
   origin {
     domain_name              = local.web_content_bucket_regional_domain_name
@@ -44,8 +45,23 @@ resource "aws_cloudfront_distribution" "this" {
     error_caching_min_ttl = 10
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  # conditional nested blocks are not supported by Terraform, therefore this hack
+  dynamic "viewer_certificate" {
+    for_each = var.us_east_1_acm_certificate_arn == "" ? [1] : []
+
+    content {
+      cloudfront_default_certificate = true
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = var.us_east_1_acm_certificate_arn == "" ? [] : [1]
+
+    content {
+      acm_certificate_arn      = var.us_east_1_acm_certificate_arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = "TLSv1.2_2019"
+    }
   }
 }
 
@@ -55,4 +71,22 @@ resource "aws_cloudfront_function" "viewer_request" {
   name    = var.bucket_name
   runtime = "cloudfront-js-1.0"
   code    = var.cloudfront_function_viewer_request_code
+}
+
+data "aws_route53_zone" "selected" {
+  count = var.domain_name == "" ? 0 : 1
+
+  name = var.domain_name
+}
+
+module "alias_a_records" {
+  for_each = var.domain_name == "" ? [] : toset(var.subject_alternative_names)
+
+  source = "github.com/Carlovo/route53-alias-records"
+
+  dns_record_name = each.key
+
+  hosted_zone_id       = data.aws_route53_zone.selected[0].zone_id
+  alias_domain_name    = aws_cloudfront_distribution.this.domain_name
+  alias_hosted_zone_id = aws_cloudfront_distribution.this.hosted_zone_id
 }

@@ -11,6 +11,24 @@ variable "cloudfront_function_viewer_request_code" {
   description = "JS code for cloudfront function upon viewer request"
 }
 
+variable "subject_alternative_names" {
+  type        = list(string)
+  default     = []
+  description = "DNS aliases for the cloudfront distribution."
+}
+
+variable "us_east_1_acm_certificate_arn" {
+  type        = string
+  default     = ""
+  description = "Certificate to associate with the cloudfront distribution."
+}
+
+variable "domain_name" {
+  type        = string
+  default     = ""
+  description = "Domain to setup for DNS aliasing the cloudfront distribution."
+}
+
 locals {
   web_content_bucket_regional_domain_name = "${var.bucket_name}.s3.${data.aws_region.current.name}.amazonaws.com"
 }
