@@ -29,6 +29,12 @@ variable "domain_name" {
   description = "Domain to setup for DNS aliasing the cloudfront distribution."
 }
 
+variable "log_requests" {
+  type        = bool
+  default     = false
+  description = "Log requests made to the cloudfront distribution to s3."
+}
+
 locals {
   web_content_bucket_regional_domain_name = "${var.bucket_name}.s3.${data.aws_region.current.name}.amazonaws.com"
 }

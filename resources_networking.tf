@@ -45,6 +45,14 @@ resource "aws_cloudfront_distribution" "this" {
     error_caching_min_ttl = 10
   }
 
+  dynamic "logging_config" {
+    for_each = var.log_requests ? [1] : []
+
+    content {
+      bucket = "${module.request_log_bucket[0].name}.s3.amazonaws.com"
+    }
+  }
+
   # conditional nested blocks are not supported by Terraform, therefore this hack
   dynamic "viewer_certificate" {
     for_each = var.us_east_1_acm_certificate_arn == "" ? [1] : []
